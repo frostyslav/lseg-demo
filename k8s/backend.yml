@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: backend
+  name: backend
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: backend
+    spec:
+      containers:
+      - image: localhost:5000/knfunc
+        imagePullPolicy: Always
+        name: backend
+        env:
+        - name: DOCKER_REGISTRY
+          value: localhost:5000
+        - name: KUBECONFIG_FILE
+          value: /etc/kubernetes/admin.conf
+        volumeMounts:
+          - mountPath: /var/run
+            name: docker-sock
+          - mountPath: /etc/kubernetes
+            name: shared-data
+      - image: localhost:5000/sidecar
+        imagePullPolicy: Always
+        name: sidecar
+        command: ["/bin/sh"]
+        args: ["-c", "cp /opt/kubernetes/admin.conf /etc/kubernetes/admin.conf; sed -i s%https://control-plane.minikube.internal:8443%https://kubernetes:443%g /etc/kubernetes/admin.conf; while true; do sleep 10000; done"]
+        volumeMounts:
+          - mountPath: /opt/kubernetes
+            name: kubeconfig
+          - mountPath: /etc/kubernetes
+            name: shared-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes: 
+        - name: docker-sock
+          hostPath:
+              path: /var/run
+        - name: kubeconfig
+          hostPath:
+              path: /etc/kubernetes
+        - name: shared-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+    nodePort: 30008
+  selector:
+    app: backend
+  sessionAffinity: None
+  type: NodePort
+status:
+  loadBalancer: {}
