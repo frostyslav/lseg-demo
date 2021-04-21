@@ -1,0 +1,8 @@
+FROM alpine:3.13.2
+
+COPY frontend-editor /opt/frontend-editor
+
+RUN apk add --update lighttpd
+RUN sed -i 's/server.document-root.*/server.document-root = "\/opt\/frontend-editor"/g' /etc/lighttpd/lighttpd.conf
+
+CMD ["/usr/sbin/lighttpd","-D","-f","/etc/lighttpd/lighttpd.conf"]

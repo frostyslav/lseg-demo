@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Custom fonts for this template-->
+  <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+  <link
+      href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+      rel="stylesheet">
+
+  <!-- Custom styles for this template-->
+  <link href="css/sb-admin-2.css" rel="stylesheet">
+
+  <title>Editor</title>
+  <style type="text/css" media="screen">
+
+    .ace_editor, .toolbar {
+        border: 1px solid lightgray;
+        margin: auto;
+        width: 80%;
+    } 
+    .ace_editor {
+        height: 200px;
+    }
+    </style>
+</head>
+
+<body class="bg-gradient-dark">
+
+    <div class="container">
+
+        <div class="card o-hidden border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="p-5">
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4">Backend host URL</h1>
+                            </div>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-user" id="hostUrl"
+                                    placeholder="Endpoint" value="http://localhost:8080">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="container">
+
+        <div class="card o-hidden border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <!-- Nested Row within Card Body -->
+                <div class="row">
+                    <div class="col-lg-5 d-none d-lg-block bg-register-image"></div>
+                    <div class="col-lg-7">
+                        <div class="p-5">
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4">Run your code from the repository</h1>
+                            </div>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-user" id="repoUrl"
+                                    placeholder="Repository URL">
+                            </div>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-user" id="repoTag"
+                                    placeholder="Tag">
+                            </div>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-user" id="repoPath"
+                                    placeholder="Path">
+                            </div>
+                            <a class="btn btn-success btn-user btn-block" id="runRepo">
+                                Send Code
+                            </a>
+                            <hr>
+                            <div class="form-group" id="spinnerRepo" style="display:none" >
+                                <span class="spinner-border spinner-border-sm" ></span>
+                                Deploying code
+                            </div>
+                            <div class="form-group" id="resultUrlRepo" style="display:none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="container">
+
+        <div class="card o-hidden border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <!-- Nested Row within Card Body -->
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="p-5">
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4">Run your code directly from the UI</h1>
+                            </div>
+                            <div id="editor">
+                            </div>
+                            <hr>
+                            <div class="form-group" id="spinnerEditor" style="display:none">
+                                <span class="spinner-border spinner-border-sm"  ></span>
+                                Deploying code
+                            </div>
+                            <div class="form-group" id="resultUrlEditor" style="display:none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<!-- Bootstrap core JavaScript-->
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!-- Core plugin JavaScript-->
+<script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+<!-- Custom scripts for all pages-->
+<script src="js/sb-admin-2.min.js"></script>
+
+<script>
+
+$('#runRepo').on('click', function (e) {
+
+    if($('#runRepo').prop("disabled") == true) { 
+        return true;
+    }
+
+    $('#resultUrlRepo').hide();
+    $('#resultUrlRepo').empty();
+
+    const url = document.getElementById("hostUrl").value + "/func_create";
+
+    const data = { 
+        "repo": {
+            "URL": $('#repoUrl').val(),
+            "tag": $('#repoTag').val(),
+            "path": $('#repoPath').val()
+        }
+    };
+
+    $('#spinnerRepo').show();
+    $('#runRepo').prop("disabled", true);
+    $('#runEditor').prop("disabled", true);
+
+    const other_params = {
+        headers : { "content-type" : "application/json; charset=UTF-8" },
+        body : JSON.stringify(data),
+        method : "POST",
+        mode : "cors"
+    };
+
+    fetch(url, other_params)
+        .then(function(response) {
+            if (response.ok) {
+                response.json().then(json => {
+                    localStorage.hashId = json.id
+                    checkDeploy('#resultUrlRepo');
+                })
+            } else {
+                throw new Error("Could not reach the API: " + response.statusText);
+            }
+        }).catch(function(error) {
+            $('#spinnerRepo').hide();
+            $('#runRepo').prop("disabled", false);
+            $('#runEditor').prop("disabled", false);
+            alert(error.message);
+        });
+    return true;
+})
+
+
+function checkDeploy(urlField){
+
+    const url = document.getElementById("hostUrl").value + "/func_status/" + localStorage.hashId;
+    
+    const other_params = {
+        headers : { "content-type" : "application/json; charset=UTF-8"  },
+        method : "GET"
+    };
+
+    // call the api to check if the process is done
+    fetch(url, other_params)
+        .then(function(response) {
+            if (response.ok) {
+                response.json().then(json => {
+                    if(json.url != '') {
+                        $(urlField).show();
+                        $(urlField).append("<a href=" + json.url + "> " + json.url + "</a>" );
+                        $('#spinnerRepo').hide();
+                        $('#spinnerEditor').hide();
+                        $('#runRepo').prop("disabled", false);
+                        $('#runEditor').prop("disabled", false);
+                    } else { setTimeout(checkDeploy.bind(this, urlField), 5000);}
+                })
+            } else {
+                throw new Error("Could not reach the API: " + response.statusText);
+            }
+        }).catch(function(error) {
+            $('#spinnerRepo').hide();
+            $('#runRepo').prop("disabled", false);
+            $('#runEditor').prop("disabled", false);
+            alert(error.message);
+        });
+    
+}
+</script>
+
+<script src="kitchen-sink/require.js"></script>
+<script>
+// setup paths
+require.config({paths: { "ace" : "lib/ace"}});
+// load ace and extensions
+require(["ace/ace", "ace/ext/language_tools"], function(ace) {
+    var buildDom = require("ace/lib/dom").buildDom;
+    var editor = ace.edit();
+    editor.setOptions({
+        theme: "ace/theme/twilight",
+        mode: "ace/mode/golang",
+        maxLines: 30,
+        minLines: 30,
+        autoScrollEditorIntoView: true,
+    });
+    var refs = {};
+    function updateToolbar() {
+        refs.saveButton.disabled = editor.session.getUndoManager().isClean();
+        refs.undoButton.disabled = !editor.session.getUndoManager().hasUndo();
+        refs.redoButton.disabled = !editor.session.getUndoManager().hasRedo();
+    }
+    editor.on("input", updateToolbar);
+    editor.session.setValue(localStorage.savedValue || "Welcome to ace Toolbar demo!")
+    function save() {
+        localStorage.savedValue = editor.getValue(); 
+        editor.session.getUndoManager().markClean();
+        updateToolbar();
+    }
+    editor.commands.addCommand({
+        name: "save",
+        exec: save,
+        bindKey: { win: "ctrl-s", mac: "cmd-s" }
+    });
+    function runCode() {
+
+        if($('#runEditor').prop("disabled") == true) { 
+            return true;
+        }
+
+        $('#resultUrlEditor').hide();
+        $('#resultUrlEditor').empty();
+        
+        const url = document.getElementById("hostUrl").value + "/func_create";
+        const data = {
+            "language": "go",
+            "code": btoa(editor.getValue())
+        };
+
+        const other_params = {
+            headers : { "content-type" : "application/json; charset=UTF-8"},
+            body : JSON.stringify(data),
+            method : "POST",
+            mode : "cors"
+        };
+
+        $('#spinnerEditor').show();
+        $('#runRepo').prop("disabled", true);
+        $('#runEditor').prop("disabled", true);
+
+        fetch(url, other_params)
+            .then(function(response) {
+                if (response.ok) {
+                    response.json().then(json => {
+                        localStorage.hashId = json.id
+                        checkDeploy('#resultUrlEditor');
+                    })
+                } else {
+                    throw new Error("Could not reach the API: " + response.statusText);
+                }
+            }).catch(function(error) {
+                $('#spinnerEditor').hide();
+                $('#runRepo').prop("disabled", false);
+                $('#runEditor').prop("disabled", false);
+                alert(error.message);
+            });
+        return true;
+    }
+    editor.commands.addCommand({
+        name: "runCode",
+        exec: runCode,
+        bindKey: { win: "ctrl-r", mac: "cmd-r" }
+    });
+    
+    buildDom(["div", { class: "toolbar" },
+        ["button", {
+            ref: "saveButton",
+            class: "btn",
+            onclick: save
+        }, "save"],
+        ["button", {
+            ref: "undoButton",
+            class: "btn",
+            onclick: function() {
+                editor.undo();
+            }
+        }, "undo"],
+        ["button", {
+            ref: "redoButton",
+            class: "btn",
+            onclick: function() {
+                editor.redo();
+            }
+        }, "redo"],
+        ["button", {
+            class: "btn btn-success",
+            id: "runEditor",
+            onclick: runCode
+        }, "Send Code"],
+    ], document.getElementById("editor"), refs);
+    document.getElementById("editor").appendChild(editor.container)
+    
+    window.editor = editor;
+});
+
+</script>
+
+</body>
+</html>
