@@ -45,11 +45,6 @@ Install backend
   make install-backend
 ```
 
-Install backend
-```bash
-  make install-backend
-```
-
 Make frontend accessible from the local machine
 ```bash
   kubectl port-forward --address 0.0.0.0 service/frontend 8090:8090
