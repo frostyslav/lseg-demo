@@ -32,6 +32,9 @@ build-dockerfiles: ## build dockerfiles
 	docker push localhost:5000/knfunc
 	docker build -f Dockerfile.frontend -t localhost:5000/web-ui .
 	docker push localhost:5000/web-ui
+	docker pull alpine:3.13.2
+	docker tag alpine:3.13.2 localhost:5000/sidecar
+	docker push localhost:5000/sidecar
 
 install-frontend: ## install frontend
 	kubectl apply -f k8s/frontend.yml
@@ -39,6 +42,6 @@ install-frontend: ## install frontend
 install-backend: ## install backend
 	kubectl apply -f k8s/backend.yml
 
-destroy: ## destroys minikube
+destroy: ## destroy minikube
 	minikube stop
 	minikube delete
